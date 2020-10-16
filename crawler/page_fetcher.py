@@ -17,7 +17,7 @@ class PageFetcher(Thread):
             obj_url: Instancia da classe ParseResult com a URL a ser requisitada.
         """
         url = obj_url.geturl()
-        print(url)
+        # url = str(obj_url.scheme) + '://' + str(obj_url.netloc) + str(obj_url.path)
         headers = {'user-agent': self.obj_scheduler.str_usr_agent}
         r = requests.get(url, headers=headers)
         content = r.headers['content-type']
@@ -47,21 +47,29 @@ class PageFetcher(Thread):
         next_url = self.obj_scheduler.get_next_url()
         if next_url is None:
             time.sleep(Scheduler.TIME_LIMIT_BETWEEN_REQUESTS)
-            return
-        content = self.request_url(next_url[0])
-        depth = next_url[1]
-        urls = self.discover_links(next_url[0], depth, content)
+            pass
+        else:
+            content = self.request_url(next_url[0])
+            depth = next_url[1]
+            urls = self.discover_links(next_url[0], depth, content)
 
-        aux = []
-        links = []
-        for url in urls:
-            if not url[0].netloc in aux:
-                aux.append(url[0].netloc)
-                links.append(url)
-        for index, (url_link, depth) in enumerate(links):
-            if url_link is not None:
-                self.obj_scheduler.add_new_page(url_link, depth)
-        return True
+            aux = []
+            links = []
+
+            # url = str(next_url[0].scheme) + '://' + str(next_url[0].netloc) + str(next_url[0].path)
+            url = next_url[0].geturl()
+            print(url)
+            with open("paginas-coletadas.txt", "a", encoding="utf-8") as file:
+                file.write(url+"\n")
+
+            for url in urls:
+                if not url[0].netloc in aux:
+                    aux.append(url[0].netloc)
+                    links.append(url)
+            for index, (url_link, depth) in enumerate(links):
+                if url_link is not None:
+                    self.obj_scheduler.add_new_page(url_link, depth)
+            return True
 
     def run(self):
         """
@@ -70,4 +78,4 @@ class PageFetcher(Thread):
         [self.obj_scheduler.add_new_page(url) for url in self.obj_scheduler.arr_urls_seeds]
         while not self.obj_scheduler.has_finished_crawl():
             self.crawl_new_url()
-            self.obj_scheduler.count_fetched_page()
+            # self.obj_scheduler.count_fetched_page()

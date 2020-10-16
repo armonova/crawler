@@ -45,7 +45,7 @@ class Scheduler:
         """
             Verifica se finalizou a coleta
         """
-        if self.int_page_count > self.int_page_limit:
+        if (self.int_page_count > self.int_page_limit):
             return True
         return False
 
@@ -64,11 +64,12 @@ class Scheduler:
 
     @synchronized
     def add_new_page(self, obj_url, int_depth=0):
+        domain = obj_url.netloc
         if self.can_add_page(obj_url, int_depth):
             # add url by domain
             if not Domain(obj_url.netloc, self.TIME_LIMIT_BETWEEN_REQUESTS) in self.dic_url_per_domain.keys():
-                self.dic_url_per_domain[Domain(obj_url.netloc, self.TIME_LIMIT_BETWEEN_REQUESTS)] = []
-            self.dic_url_per_domain[Domain(obj_url.netloc, self.TIME_LIMIT_BETWEEN_REQUESTS)].append((obj_url, int_depth))
+                self.dic_url_per_domain[Domain(obj_url.netloc, 10)] = []
+            self.dic_url_per_domain[Domain(obj_url.netloc, 10)].append((obj_url, int_depth))
             return True
         else:
             return False
@@ -105,7 +106,7 @@ class Scheduler:
 
         # # wait and call next url again if no url is provided
         if not url_depth:
-            time.sleep(31)
+            time.sleep(self.TIME_LIMIT_BETWEEN_REQUESTS + 1)
             url_depth = self.get_next_url()
         return url_depth
 
