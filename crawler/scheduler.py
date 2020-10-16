@@ -7,7 +7,7 @@ import urllib.robotparser
 import time
 
 
-class Scheduler():
+class Scheduler:
     # tempo (em segundos) entre as requisições
     TIME_LIMIT_BETWEEN_REQUESTS = 30
 
@@ -40,18 +40,20 @@ class Scheduler():
         """
         self.int_page_count += 1
 
+    @synchronized
     def has_finished_crawl(self):
         """
             Verifica se finalizou a coleta
         """
-        if (self.int_page_count > self.int_page_limit):
+        if self.int_page_count > self.int_page_limit:
             return True
         return False
 
     @synchronized
     def can_add_page(self, obj_url, int_depth):
         if int_depth <= self.int_depth_limit:  # depth less than or equal
-            url = str(obj_url.scheme) + '://' + str(obj_url.netloc) + str(obj_url.path)
+            # url = str(obj_url.scheme) + '://' + str(obj_url.netloc) + str(obj_url.path)
+            url = obj_url.geturl()
             if url in self.set_discovered_urls:  # page already added
                 return False
             else:
@@ -61,26 +63,30 @@ class Scheduler():
             False
 
     @synchronized
-    def add_new_page(self, obj_url, int_depth):
-        # print(obj_url)
+    def add_new_page(self, obj_url, int_depth=0):
         if self.can_add_page(obj_url, int_depth):
             # add url by domain
-            if not Domain(obj_url.netloc, 10) in self.dic_url_per_domain.keys():
-                self.dic_url_per_domain[Domain(obj_url.netloc, 10)] = []
-            self.dic_url_per_domain[Domain(obj_url.netloc, 10)].append((obj_url, int_depth))
+            if not Domain(obj_url.netloc, self.TIME_LIMIT_BETWEEN_REQUESTS) in self.dic_url_per_domain.keys():
+                self.dic_url_per_domain[Domain(obj_url.netloc, self.TIME_LIMIT_BETWEEN_REQUESTS)] = []
+            self.dic_url_per_domain[Domain(obj_url.netloc, self.TIME_LIMIT_BETWEEN_REQUESTS)].append((obj_url, int_depth))
             return True
         else:
             return False
 
-    # @synchronized
+    @synchronized
     def get_next_url(self):
         """
         Obtem uma nova URL por meio da fila. Essa URL é removida da fila.
         Logo após, caso o servidor não tenha mais URLs, o mesmo também é removido.
         """
+
+        if not self.dic_url_per_domain:
+            return None
+
         domains_to_remove = []
         url_to_remove = None
         url_depth = None
+
         for domain in self.dic_url_per_domain:
             if domain.is_accessible():
                 if not self.dic_url_per_domain[domain]:
@@ -97,9 +103,9 @@ class Scheduler():
         if url_to_remove:
             url_depth = self.dic_url_per_domain[url_to_remove][0]
 
-        # wait and call next url again if no url is provided
+        # # wait and call next url again if no url is provided
         if not url_depth:
-            time.sleep(21)
+            time.sleep(31)
             url_depth = self.get_next_url()
         return url_depth
 
@@ -107,13 +113,15 @@ class Scheduler():
         """
         Verifica, por meio do robots.txt se uma determinada URL pode ser coletada
         """
-        url_robots = obj_url.scheme + '://' + obj_url.netloc + '/robots.txt'
-        full_url = obj_url.scheme + '://' + obj_url.netloc + obj_url.path + obj_url.params + obj_url.query + obj_url.fragment
+        # url_robots = obj_url.scheme + '://' + obj_url.netloc + '/robots.txt'
+        # full_url = obj_url.scheme + '://' + obj_url.netloc + obj_url.path + obj_url.params + obj_url.query + obj_url.fragment
+        full_url = obj_url.geturl()
         if obj_url.netloc in self.dic_robots_per_domain:
             return False
         else:
             rp = urllib.robotparser.RobotFileParser()
-            rp.set_url(url_robots)
+            # rp.set_url(url_robots)
+            rp.set_url(obj_url.geturl())
             rp.read()
             self.dic_robots_per_domain[obj_url.netloc] = rp
             return rp.can_fetch("*", full_url)

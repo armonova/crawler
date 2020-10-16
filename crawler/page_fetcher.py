@@ -1,13 +1,14 @@
+from urllib.parse import urlparse, urljoin
+from .scheduler import Scheduler
 from bs4 import BeautifulSoup
 from threading import Thread
 import requests
 import time
-from urllib.parse import urlparse, urljoin
-from .scheduler import Scheduler
 
 
 class PageFetcher(Thread):
     def __init__(self, obj_scheduler):
+        super(PageFetcher, self).__init__()
         self.obj_scheduler = obj_scheduler
 
     def request_url(self, obj_url):
@@ -15,10 +16,10 @@ class PageFetcher(Thread):
             Faz a requisição e retorna o conteúdo em binário da URL passada como parametro
             obj_url: Instancia da classe ParseResult com a URL a ser requisitada.
         """
-        url = obj_url.scheme + '://' + obj_url.netloc + obj_url.path + obj_url.params + obj_url.query + obj_url.fragment
-        headers = {'user-agent': 'arthur-crawler'}
+        url = obj_url.geturl()
+        print(url)
+        headers = {'user-agent': self.obj_scheduler.str_usr_agent}
         r = requests.get(url, headers=headers)
-        r.status_code
         content = r.headers['content-type']
         if 'html' in content:
             response = r
@@ -33,7 +34,6 @@ class PageFetcher(Thread):
         soup = BeautifulSoup(bin_str_content, features="lxml")
         for link in soup.select("a[href]"):
             obj_new_url = urlparse(link.get("href"))
-            print(link.get("href"))
             if obj_new_url.netloc == obj_url.netloc:
                 int_new_depth = int_depth + 1
             else:
@@ -50,7 +50,7 @@ class PageFetcher(Thread):
             return
         content = self.request_url(next_url[0])
         depth = next_url[1]
-        urls = self.discover_links(next_url, depth, content)
+        urls = self.discover_links(next_url[0], depth, content)
 
         aux = []
         links = []
@@ -59,7 +59,7 @@ class PageFetcher(Thread):
                 aux.append(url[0].netloc)
                 links.append(url)
         for index, (url_link, depth) in enumerate(links):
-            if not url_link is None:
+            if url_link is not None:
                 self.obj_scheduler.add_new_page(url_link, depth)
         return True
 

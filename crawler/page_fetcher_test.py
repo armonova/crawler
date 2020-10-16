@@ -3,7 +3,7 @@ from urllib.parse import urlparse
 import time
 from .scheduler import *
 from .page_fetcher import *
-
+from urllib.parse import urlparse
 
 class PageFetcherTest(unittest.TestCase):
     def setUp(self):
@@ -41,6 +41,11 @@ class PageFetcherTest(unittest.TestCase):
             self.assertEqual(arr_expected_links[i][1], depth,
                              f"A profundiade da URL {arr_expected_links[i][0].geturl()} seria {arr_expected_links[i][1]} e não {depth}")
 
+    def unit_test_ex_10(self):
+        urlProf = urlparse("http://www.xpto.com.br/index.html")
+        arr_urls = [urlProf]
+        [self.scheduler.add_new_page(url) for url in arr_urls]
+        self.assertEqual(self.fetcher.crawl_new_url(), True)
 
 if __name__ == "__main__":
     unittest.main()
